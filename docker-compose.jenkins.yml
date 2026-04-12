@@ -1,0 +1,73 @@
+version: '3.8'
+
+# Part II — Jenkins Pipeline Deployment
+# Differences from Part I:
+#   - No Dockerfile build — uses base images + volume-mounted code
+#   - Different ports (4000 instead of 3000, 5001 instead of 5000)
+#   - Different container names (paperbank-jenkins-*)
+
+services:
+  jenkins-db:
+    image: postgres:15-alpine
+    container_name: paperbank-jenkins-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: paperbank
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    expose:
+      - "5432"
+    volumes:
+      - jenkins_pgdata:/var/lib/postgresql/data
+      - ./backend/src/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  jenkins-backend:
+    image: node:20-alpine
+    container_name: paperbank-jenkins-backend
+    working_dir: /app
+    command: sh -c "npm install && node src/index.js"
+    restart: unless-stopped
+    expose:
+      - "5001"
+    environment:
+      PORT: 5001
+      DB_HOST: jenkins-db
+      DB_PORT: 5432
+      DB_NAME: paperbank
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: paper-bank-jwt-secret-jenkins
+      NODE_ENV: production
+    volumes:
+      - ./backend:/app
+      - ./data/jenkins-uploads:/app/uploads
+      - backend_node_modules:/app/node_modules
+    depends_on:
+      jenkins-db:
+        condition: service_healthy
+
+  jenkins-frontend:
+    image: node:20-alpine
+    container_name: paperbank-jenkins-frontend
+    working_dir: /app
+    command: sh -c "npm install && npx vite build && npx vite preview --host 0.0.0.0 --port 4000"
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      VITE_API_URL: http://jenkins-backend:5001
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - jenkins-backend
+
+volumes:
+  jenkins_pgdata:
+  backend_node_modules:
+  frontend_node_modules:
