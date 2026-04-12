@@ -10,7 +10,7 @@ pipeline {
             steps {
                 // Fetch latest code from GitHub
                 git branch: 'main',
-                    url: 'https://github.com/hexakaleem/paperbank.git'
+                    url: 'https://github.com/hexakaleem/paperbank'
             }
         }
 
