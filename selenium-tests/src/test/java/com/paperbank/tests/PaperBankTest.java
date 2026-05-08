@@ -65,7 +65,7 @@ public class PaperBankTest {
     public void testHeroTextExists() {
         driver.get(baseUrl);
         WebElement heroText = wait.until(ExpectedConditions.visibilityOfElementLocated(By.tagName("h1")));
-        Assert.assertTrue(heroText.getText().contains("Find Past Papers"), "Hero text should be present");
+        Assert.assertTrue(heroText.getText().toUpperCase().contains("FIND PAST PAPERS"), "Hero text should be present");
     }
 
     @Test(priority = 3)
