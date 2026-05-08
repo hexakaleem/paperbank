@@ -36,9 +36,42 @@ pipeline {
                 sh 'docker-compose -f ${COMPOSE_FILE} ps'
             }
         }
+
+        stage('Test') {
+            steps {
+                echo 'Executing Selenium Automated Tests in Docker container...'
+                sh '''
+                    docker run --rm \
+                        --network container:paperbank-jenkins-frontend \
+                        -v ${WORKSPACE}/selenium-tests:/app \
+                        -w /app \
+                        markhobson/maven-chrome mvn clean test -Dapp.url=http://localhost:4000
+                '''
+            }
+        }
     }
 
     post {
+        always {
+            script {
+                def commitEmail = sh(script: "git log -1 --pretty=format:'%ae'", returnStdout: true).trim()
+                def subject = "Jenkins Pipeline Status: ${currentBuild.fullDisplayName}"
+                def body = "Pipeline finished with status: ${currentBuild.currentResult}\\n\\n" +
+                           "Please check the Jenkins console output for details."
+
+                try {
+                    emailext (
+                        to: commitEmail,
+                        subject: subject,
+                        body: body,
+                        attachLog: true
+                    )
+                    echo "Email notification sent to ${commitEmail}"
+                } catch (Exception e) {
+                    echo "Could not send email. Make sure Jenkins email configuration is properly set up. Error: ${e.message}"
+                }
+            }
+        }
         success {
             echo 'Pipeline completed successfully! App is running on port 4000.'
         }
