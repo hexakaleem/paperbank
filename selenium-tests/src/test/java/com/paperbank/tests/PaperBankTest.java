@@ -10,9 +10,12 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -23,8 +26,10 @@ public class PaperBankTest {
     private String baseUrl;
 
     @BeforeClass
-    public void setUp() {
+    public void setUpClass() {
         WebDriverManager.chromedriver().setup();
+        baseUrl = System.getProperty("app.url", "http://localhost:4000");
+
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless");
         options.addArguments("--disable-gpu");
@@ -34,10 +39,20 @@ public class PaperBankTest {
         options.addArguments("--window-size=1920,1080");
 
         driver = new ChromeDriver(options);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        
-        // Use system property or default to localhost:4000
-        baseUrl = System.getProperty("app.url", "http://localhost:4000");
+    }
+
+    @BeforeMethod
+    public void setUp(Method method) {
+        System.out.println("=======================================================");
+        System.out.println("▶ STARTING TEST: " + method.getName());
+        System.out.println("=======================================================");
+    }
+
+    @AfterMethod
+    public void tearDown(Method method) {
+        System.out.println("✔ FINISHED TEST: " + method.getName() + "\n");
     }
 
     @Test(priority = 1)
