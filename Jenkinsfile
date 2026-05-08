@@ -30,7 +30,8 @@ pipeline {
                 sh 'docker-compose -f ${COMPOSE_FILE} up -d'
 
                 echo 'Waiting for services to be ready...'
-                sh 'sleep 10'
+                sh 'docker wait paperbank-jenkins-frontend-build'
+                sh 'sleep 5'
 
                 echo 'Application deployed successfully!'
                 sh 'docker-compose -f ${COMPOSE_FILE} ps'
@@ -42,6 +43,7 @@ pipeline {
                 echo 'Executing Selenium Automated Tests in Docker container...'
                 sh '''
                     docker run --rm \
+                        --shm-size="2g" \
                         --network container:paperbank-jenkins-frontend \
                         -v ${WORKSPACE}/selenium-tests:/app \
                         -w /app \
