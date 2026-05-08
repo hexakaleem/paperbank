@@ -55,22 +55,24 @@ pipeline {
 
     post {
         always {
-            script {
-                def commitEmail = sh(script: "git log -1 --pretty=format:'%ae'", returnStdout: true).trim()
-                def subject = "Jenkins Pipeline Status: ${currentBuild.fullDisplayName}"
-                def body = "Pipeline finished with status: ${currentBuild.currentResult}\\n\\n" +
-                           "Please check the Jenkins console output for details."
+            node {
+                script {
+                    try {
+                        def commitEmail = sh(script: "git log -1 --pretty=format:'%ae'", returnStdout: true).trim()
+                        def subject = "Jenkins Pipeline Status: ${currentBuild.fullDisplayName}"
+                        def body = "Pipeline finished with status: ${currentBuild.currentResult}\\n\\n" +
+                                   "Please check the Jenkins console output for details."
 
-                try {
-                    emailext (
-                        to: commitEmail,
-                        subject: subject,
-                        body: body,
-                        attachLog: true
-                    )
-                    echo "Email notification sent to ${commitEmail}"
-                } catch (Exception e) {
-                    echo "Could not send email. Make sure Jenkins email configuration is properly set up. Error: ${e.message}"
+                        emailext (
+                            to: commitEmail,
+                            subject: subject,
+                            body: body,
+                            attachLog: true
+                        )
+                        echo "Email notification sent to ${commitEmail}"
+                    } catch (Exception e) {
+                        echo "Could not send email or fetch git log. Error: ${e.message}"
+                    }
                 }
             }
         }
@@ -78,8 +80,10 @@ pipeline {
             echo 'Pipeline completed successfully! App is running on port 4000.'
         }
         failure {
-            echo 'Pipeline failed. Cleaning up...'
-            sh 'docker-compose -f ${COMPOSE_FILE} down || true'
+            node {
+                echo 'Pipeline failed. Cleaning up...'
+                sh 'docker-compose -f ${COMPOSE_FILE} down || true'
+            }
         }
     }
 }
