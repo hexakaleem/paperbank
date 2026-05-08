@@ -55,8 +55,8 @@ pipeline {
 
     post {
         always {
-            node {
-                script {
+            script {
+                if (env.WORKSPACE) {
                     try {
                         def commitEmail = sh(script: "git log -1 --pretty=format:'%ae'", returnStdout: true).trim()
                         def subject = "Jenkins Pipeline Status: ${currentBuild.fullDisplayName}"
@@ -73,6 +73,8 @@ pipeline {
                     } catch (Exception e) {
                         echo "Could not send email or fetch git log. Error: ${e.message}"
                     }
+                } else {
+                    echo "No workspace allocated, skipping email notification."
                 }
             }
         }
@@ -80,9 +82,13 @@ pipeline {
             echo 'Pipeline completed successfully! App is running on port 4000.'
         }
         failure {
-            node {
-                echo 'Pipeline failed. Cleaning up...'
-                sh 'docker-compose -f ${COMPOSE_FILE} down || true'
+            script {
+                if (env.WORKSPACE) {
+                    echo 'Pipeline failed. Cleaning up...'
+                    sh 'docker-compose -f ${COMPOSE_FILE} down || true'
+                } else {
+                    echo "No workspace allocated, skipping cleanup."
+                }
             }
         }
     }
