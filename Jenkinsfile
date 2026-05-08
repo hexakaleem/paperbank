@@ -6,6 +6,13 @@ pipeline {
     }
 
     stages {
+        stage('Clean Environment') {
+            steps {
+                echo 'Cleaning up Docker space...'
+                sh 'docker system prune -a -f --volumes'
+            }
+        }
+
         stage('Checkout') {
             steps {
                 // Fetch latest code from GitHub
